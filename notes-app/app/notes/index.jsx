@@ -1,21 +1,41 @@
 import { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { useAuth } from "../../contexts/AuthContext";
+
 // import NoteList from "@componenets/NoteList";
 import NoteList from "../../componenets/NoteList";
 import AddNoteModal from "../../componenets/AddNoteModal";
 import noteService from "../../services/noteService";
 
 const NoteScreen = () => {
-  const [notes, setNotes] = useState([]);
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
 
+  const [notes, setNotes] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newNote, setNewNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchNotes();
-  }, []);
+    if (!authLoading && !user) {
+      router.replace("/auth");
+    }
+  }, [user, authLoading]);
+
+  useEffect(() => {
+    if (user) {
+      fetchNotes();
+    }
+  }, [user]);
 
   const fetchNotes = async () => {
     setLoading(true);
@@ -33,21 +53,82 @@ const NoteScreen = () => {
   };
 
   // Add New Note
-  const addNote = () => {
+  const addNote = async () => {
     if (newNote.trim() === "") return;
 
-    setNotes((prevNotes) => [
-      ...prevNotes,
-      { id: Date.now.toString(), text: newNote },
-    ]);
+    const response = await noteService.addNote(newNote);
+
+    if (response.error) {
+      Alert.alert("Error", response.error);
+    } else {
+      setNotes([...notes, response.data]);
+    }
 
     setNewNote("");
     setModalVisible(false);
   };
 
+  // Delete Note
+  const deleteNote = async (id) => {
+    const response = await noteService.deleteNote(id);
+    if (response.error) {
+      Alert.alert("Error", response.error);
+    } else {
+      setNotes(notes.filter((note) => note.$id !== id));
+    }
+    // console.log("deleteNote triggered");
+    // Alert.alert("Delete Note", "Are you sure you want to delete this note?", [
+    //   {
+    //     text: "Cancel",
+    //     style: "cancel",
+    //   },
+    //   {
+    //     text: "Delete",
+    //     style: "destructive",
+    //     onPress: async () => {
+    //       const response = await noteService.deleteNote(id);
+    //       if (response.error) {
+    //         Alert.alert("Error", response.error);
+    //       } else {
+    //         setNotes(notes.filter((note) => note.$id !== id));
+    //       }
+    //     },
+    //   },
+    // ]);
+  };
+
+  // Edit Note
+  const editNote = async (id, newText) => {
+    if (!newText.trim()) {
+      Alert.alert("Error", "Note text cannot be empty");
+      console.log("Note text cannot be empty");
+      return;
+    }
+
+    const response = await noteService.updateNote(id, newText);
+    if (response.error) {
+      Alert.alert("Error", response.error);
+      console.log(response.error);
+    } else {
+      setNotes((prevNotes) =>
+        prevNotes.map((note) =>
+          note.$id === id ? { ...note, text: response.data.text } : note
+        )
+      );
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <NoteList notes={notes} />
+      {loading ? (
+        <ActivityIndicator size="large" color="#007bff" />
+      ) : (
+        <>
+          {error && <Text style={styles.errorText}>{error}</Text>}
+          <NoteList notes={notes} onDelete={deleteNote} onEdit={editNote} />
+        </>
+      )}
+      {/* <NoteList notes={notes} /> */}
       <TouchableOpacity
         style={styles.addButton}
         onPress={() => setModalVisible(true)}
