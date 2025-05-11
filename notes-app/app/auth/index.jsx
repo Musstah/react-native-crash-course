@@ -5,13 +5,52 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  Alert,
 } from "react-native";
+import { useRouter } from "expo-router";
+import { useAuth } from "../../contexts/AuthContext";
+
 const AuthScreen = () => {
+  const { login, register } = useAuth();
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
   const [error, setError] = useState(false);
+
+  const handleAuth = async () => {
+    if (!email.trim() || !password.trim()) {
+      setError("Email and password are required");
+      return;
+    }
+
+    if (isRegistering && password !== confirmPassword) {
+      setError("Password do not match");
+      console.log("Password do not match");
+      return;
+    }
+
+    let response;
+
+    if (isRegistering) {
+      // console.log("Starting registering in auth/index");
+      response = await register(email, password);
+    } else {
+      response = await login(email, password);
+    }
+    if (response?.error) {
+      Alert.alert("Error", response.error);
+      console.log("Error occured auth/index");
+      // console.log(`Emailfrom auth/index: ${email}`);
+      // console.log(`Password auth/index: ${password}`);
+      console.log(response.error);
+      return;
+    }
+
+    router.replace("/notes");
+  };
 
   return (
     <View styke={StyleSheet.container}>
@@ -25,8 +64,9 @@ const AuthScreen = () => {
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
-        keyboardType="email-adress"
+        keyboardType="email-address"
       />
+
       <TextInput
         style={styles.input}
         placeholder="Password"
@@ -34,6 +74,7 @@ const AuthScreen = () => {
         value={password}
         onChangeText={setPassword}
         secureTextEntry
+        textContentType="none"
       />
 
       {isRegistering && (
@@ -44,10 +85,11 @@ const AuthScreen = () => {
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           secureTextEntry
+          textContentType="none"
         />
       )}
 
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity style={styles.button} onPress={handleAuth}>
         <Text style={styles.buttonText}>
           {isRegistering ? "Sign up" : "Login"}
         </Text>

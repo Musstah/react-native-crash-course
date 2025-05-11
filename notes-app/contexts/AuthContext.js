@@ -35,6 +35,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (email, password) => {
+    // console.log("Starting registering in AtuchContext");
+    // console.log(`Emailfrom AuthContext: ${email}`);
+    // console.log(`Password from AuthContext: ${password}`);
     const response = await authService.register(email, password);
 
     if (response?.error) {

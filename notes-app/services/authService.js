@@ -5,7 +5,7 @@ const authService = {
   // Register a user
   async register(email, password) {
     try {
-      const response = await account.create(ID.unique(), email.password);
+      const response = await account.create(ID.unique(), email, password);
       return response;
     } catch (error) {
       return {
@@ -15,11 +15,11 @@ const authService = {
   },
 
   // Login a user
-  async register(email, password) {
+  async login(email, password) {
     try {
       const response = await account.createEmailPasswordSession(
-        ID.unique(),
-        email.password
+        email,
+        password
       );
       return response;
     } catch (error) {
